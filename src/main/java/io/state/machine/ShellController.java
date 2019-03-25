@@ -8,7 +8,7 @@ import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
 import org.springframework.statemachine.StateMachine;
-import org.springframework.statemachine.config.StateMachineFactory;
+import org.springframework.statemachine.service.StateMachineService;
 
 import java.util.Objects;
 
@@ -17,17 +17,17 @@ import java.util.Objects;
 public class ShellController {
 
     private StateMachine<SMState, SMEvents> stateMachine;
-    private StateMachineFactory<SMState, SMEvents> stateMachineFactory;
+    private StateMachineService<SMState, SMEvents> stateMachineService;
 
     @Autowired
-    public ShellController(StateMachineFactory<SMState, SMEvents> stateMachineFactory) {
-        this.stateMachineFactory = stateMachineFactory;
+    public ShellController(StateMachineService<SMState, SMEvents> stateMachineService) {
+        this.stateMachineService = stateMachineService;
     }
 
     @ShellMethod("Type your command for stateMachine")
     public void machine(@ShellOption("print your message") String message) {
         if (message.equals("getInstance")) {
-            this.stateMachine = stateMachineFactory.getStateMachine("3");
+            this.stateMachine = stateMachineService.acquireStateMachine("5", false);
             log.info("SM was created, id={}", this.stateMachine.getId());
         }
         if (message.equals("start")) {

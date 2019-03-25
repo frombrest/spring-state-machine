@@ -5,25 +5,35 @@ import io.state.machine.statemachine.guards.SMGuards;
 import io.state.machine.statemachine.listeners.MachineListener;
 import io.state.machine.statemachine.states.SMState;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.statemachine.StateMachinePersist;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter;
+import org.springframework.statemachine.config.StateMachineFactory;
 import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
+import org.springframework.statemachine.persist.StateMachineRuntimePersister;
+import org.springframework.statemachine.service.DefaultStateMachineService;
+import org.springframework.statemachine.service.StateMachineService;
 
 @Configuration
 @EnableStateMachineFactory(name="mainmachine")
 public class SMContext extends EnumStateMachineConfigurerAdapter<SMState, SMEvents> {
 
-    private MachineListener machineListener;
     private SMGuards smGuards;
+    private MachineListener machineListener;
+    private StateMachineRuntimePersister<SMState, SMEvents, String> stateMachineRuntimePersister;
 
     @Autowired
     public SMContext(MachineListener machineListener,
-                     SMGuards smGuards) {
+                     SMGuards smGuards,
+                     StateMachineRuntimePersister<SMState, SMEvents, String> stateMachineRuntimePersister) {
         this.machineListener = machineListener;
         this.smGuards = smGuards;
+        this.stateMachineRuntimePersister = stateMachineRuntimePersister;
     }
 
     @Override
@@ -31,7 +41,10 @@ public class SMContext extends EnumStateMachineConfigurerAdapter<SMState, SMEven
         config
                 .withConfiguration()
                 .autoStartup(false)
-                .listener(this.machineListener);
+                .listener(this.machineListener)
+                .and()
+                .withPersistence()
+                .runtimePersister(stateMachineRuntimePersister);
     }
 
     @Override
@@ -114,7 +127,13 @@ public class SMContext extends EnumStateMachineConfigurerAdapter<SMState, SMEven
                 .source(SMState.CHOICE_STER_2)
                 .first(SMState.ERROR, this.smGuards.secondChoice())
                 .last(SMState.FINISH);
+    }
 
+    @Bean
+    public StateMachineService<SMState, SMEvents> stateMachineService(
+            @Qualifier("mainmachine") final StateMachineFactory<SMState, SMEvents> stateMachineFactory,
+            final StateMachinePersist<SMState, SMEvents, String> stateMachineRedisPersist) {
+        return new DefaultStateMachineService<>(stateMachineFactory, stateMachineRedisPersist);
     }
 
 
